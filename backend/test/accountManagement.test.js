@@ -11,6 +11,7 @@ process.env.ADMIN_PASSWORD = "initial-password";
 
 const Account = require("../model/Account");
 const ensureInitialAccount = require("../utils/initialAccount");
+const { clearAuthCookie, setAuthCookie } = require("../utils/authCookie");
 const originalMethods = {
   init: Account.init,
   create: Account.create,
@@ -217,5 +218,47 @@ test("existing MongoDB account prevents environment-based bootstrap", async () =
   } finally {
     process.env.ADMIN_USERNAME = initialUsername;
     process.env.ADMIN_PASSWORD = initialPassword;
+  }
+});
+
+test("Render production auth cookies are secure and clear with matching options", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalRender = process.env.RENDER;
+  process.env.NODE_ENV = "test";
+  process.env.RENDER = "true";
+
+  const cookieCalls = [];
+  const response = {
+    cookie: (...args) => cookieCalls.push({ method: "set", args }),
+    clearCookie: (...args) => cookieCalls.push({ method: "clear", args }),
+  };
+
+  try {
+    setAuthCookie(response, {
+      _id: { toString: () => "test-account-id" },
+      username: "admin",
+      role: "admin",
+    });
+    clearAuthCookie(response);
+
+    const [setCall, clearCall] = cookieCalls;
+    assert.equal(setCall.args[0], "access_token");
+    assert.equal(setCall.args[1].split(".").length, 3);
+    assert.equal(setCall.args[2].httpOnly, true);
+    assert.equal(setCall.args[2].secure, true);
+    assert.equal(setCall.args[2].sameSite, "none");
+    assert.equal(setCall.args[2].path, "/");
+    assert.equal(clearCall.args[0], "access_token");
+    assert.deepEqual(clearCall.args[1], {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+    });
+  } finally {
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
+    if (originalRender === undefined) delete process.env.RENDER;
+    else process.env.RENDER = originalRender;
   }
 });

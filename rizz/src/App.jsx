@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import AddClub from "./pages/AddClub";
 import Login from "./pages/Login";
@@ -11,30 +11,25 @@ function AppRoutes() {
   const [user, setUser] = useState(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [authError, setAuthError] = useState("");
+  const authRevision = useRef(0);
 
   useEffect(() => {
     let isActive = true;
-
-    const timeoutId = window.setTimeout(() => {
-      if (isActive) {
-        setIsCheckingSession(false);
-      }
-    }, 4000);
+    const requestRevision = authRevision.current;
 
     api
       .get("/session")
       .then(({ data }) => {
-        if (isActive) {
+        if (isActive && requestRevision === authRevision.current) {
           setUser(data.user);
         }
       })
       .catch(() => {
-        if (isActive) {
+        if (isActive && requestRevision === authRevision.current) {
           setUser(null);
         }
       })
       .finally(() => {
-        window.clearTimeout(timeoutId);
         if (isActive) {
           setIsCheckingSession(false);
         }
@@ -42,11 +37,18 @@ function AppRoutes() {
 
     return () => {
       isActive = false;
-      window.clearTimeout(timeoutId);
     };
   }, []);
 
+  const handleLogin = useCallback((authenticatedUser) => {
+    authRevision.current += 1;
+    setUser(authenticatedUser);
+    setAuthError("");
+  }, []);
+
   const handleLogout = useCallback(async () => {
+    authRevision.current += 1;
+
     try {
       await api.post("/logout");
 
@@ -60,6 +62,7 @@ function AppRoutes() {
   }, []);
 
   const handleSessionExpired = useCallback(() => {
+    authRevision.current += 1;
     setUser(null);
     setAuthError("");
   }, []);
@@ -139,7 +142,7 @@ function AppRoutes() {
             user ? (
               <Navigate to="/admin" replace />
             ) : (
-              <Login onLogin={setUser} />
+              <Login onLogin={handleLogin} />
             )
           }
         />
@@ -199,4 +202,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-

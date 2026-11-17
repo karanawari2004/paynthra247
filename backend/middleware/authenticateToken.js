@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { clearAuthCookie } = require("../utils/authCookie");
 
 function authenticateToken(req, res, next) {
   const token = req.cookies?.access_token;
@@ -25,12 +26,7 @@ function authenticateToken(req, res, next) {
       return next(error);
     }
 
-    res.clearCookie("access_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      path: "/",
-    });
+    clearAuthCookie(res);
     return res.status(401).json({
       success: false,
       message: "Session expired. Please log in again",

@@ -1,14 +1,19 @@
 const jwt = require("jsonwebtoken");
 
-const isProd = process.env.NODE_ENV === "production";
+function isProduction() {
+  return process.env.NODE_ENV === "production" || process.env.RENDER === "true";
+}
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: isProd,
-  sameSite: isProd ? "none" : "lax",
-  path: "/",
-  maxAge: 8 * 60 * 60 * 1000,
-};
+function getAuthCookieOptions() {
+  const production = isProduction();
+
+  return {
+    httpOnly: true,
+    secure: production,
+    sameSite: production ? "none" : "lax",
+    path: "/",
+  };
+}
 
 function setAuthCookie(res, account) {
   const token = jwt.sign(
@@ -24,16 +29,14 @@ function setAuthCookie(res, account) {
     }
   );
 
-  res.cookie("access_token", token, cookieOptions);
+  res.cookie("access_token", token, {
+    ...getAuthCookieOptions(),
+    maxAge: 8 * 60 * 60 * 1000,
+  });
 }
 
 function clearAuthCookie(res) {
-  res.clearCookie("access_token", {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
-    path: "/",
-  });
+  res.clearCookie("access_token", getAuthCookieOptions());
 }
 
 module.exports = { setAuthCookie, clearAuthCookie };

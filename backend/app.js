@@ -19,7 +19,8 @@ const ensureInitialAccount = require("./utils/initialAccount");
 
 const app = express();
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd =
+  process.env.NODE_ENV === "production" || process.env.RENDER === "true";
 
 
 if (isProd) {

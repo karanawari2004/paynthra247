@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://localhost:4001/api/:path*"
+      "destination": "https://payslip-g4k5.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",

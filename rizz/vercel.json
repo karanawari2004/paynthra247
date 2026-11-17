@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://paynthra247.onrender.com/api/:path*"
+      "destination": "http://localhost:4001/api/:path*"
     },
     {
       "source": "/(.*)",
